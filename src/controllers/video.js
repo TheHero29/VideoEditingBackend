@@ -1,9 +1,23 @@
 const express = require('express');
 const path = require('path');
-const { uploadVideo, trimVideo, mergeVideos } = require('../services/videoService');
+const { uploadVideo, trimVideo, mergeVideos } = require('../services/video');
+const ffmpeg = require('fluent-ffmpeg');
 
 const router = express.Router();
 const upload = require('../middleware/upload');
+
+// //function to get video duration
+// function getVideoDuration(filePath) {
+//   return new Promise((resolve, reject) => {
+//       ffmpeg.ffprobe(filePath, (err, metadata) => {
+//           if (err) {
+//               reject(err);
+//           } else {
+//               resolve(metadata.format.duration);
+//           }
+//       });
+//   });
+// }
 
 // Route to handle video upload
 router.post('/upload', upload.single('video'), async (req, res) => {
@@ -15,6 +29,12 @@ router.post('/upload', upload.single('video'), async (req, res) => {
         if (!file) {
           return res.status(400).json({ error: 'File size limit exceeded or no file uploaded' });
         }
+
+        // // throwing error if video duration is more than 25 seconds orless than 5 seconds
+        // const videoDuration = getVideoDuration(file.path);
+        // if(videoDuration > 25 || videoDuration < 5){
+        //   return res.status(400).json({ error: 'Video duration should not be more than 25 sec or less than 5 sec' });
+        // }
 
         const video = await uploadVideo(file, size, duration);
         res.status(201).json({ message: 'Video uploaded successfully', video });

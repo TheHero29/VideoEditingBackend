@@ -1,12 +1,10 @@
 const { Sequelize } = require('sequelize');
-
+require('./video')
 // Create a new Sequelize instance
 const sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite', 
 });
-
-const Video = require('./video');
 
 sequelize.sync().then(() => {
     console.log('Database synchronized');

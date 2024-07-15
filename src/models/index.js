@@ -1,5 +1,5 @@
 const { Sequelize } = require('sequelize');
-require('./video')
+// require('./video')
 // Create a new Sequelize instance
 const sequelize = new Sequelize({
     dialect: 'sqlite',

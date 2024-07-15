@@ -1,33 +1,44 @@
 const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
-const  Video  = require('../models/video'); // Assuming Sequelize model for Video
+const  Video  = require('../models/video'); 
 
 const uploadDir = 'uploads/';
 
 //function to get video duration
-function getVideoDuration(filePath) {
-    return new Promise((resolve, reject) => {
+const getVideoMetadata = async (filePath) => {
+    try {
+      const metadata = await new Promise((resolve, reject) => {
         ffmpeg.ffprobe(filePath, (err, metadata) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(metadata.format.duration);
-            }
+          if (err) {
+            return reject(err);
+          }
+          resolve(metadata);
         });
-    });
-  }
-
+      });
+  
+      const duration = metadata.format.duration;
+      const size = metadata.format.size;
+  
+      return { duration, size };
+    } catch (error) {
+      throw new Error(`Error getting video metadata: ${error.message}`);
+    }
+  };
 
 // Function to upload a video
 async function uploadVideo(file) {
     const filePath = path.join(uploadDir, file.filename);
-    const duration = await getVideoDuration(filePath);
+    const {duration,size} = await getVideoMetadata(filePath);
+    console.log(duration,size);
+    if(duration > 40 || duration < 5){
+      throw new Error('Video duration should not be more than 40 sec or less than 5 sec' );
+      return null;
+    }
 
-    // throwing error if video duration is more than 25 seconds orless than 5 seconds
-    const videoDuration = getVideoDuration(file.path);
-    if(videoDuration > 25 || videoDuration < 5){
-      return res.status(400).json({ error: 'Video duration should not be more than 25 sec or less than 5 sec' });
+    if(size > 7 * 1024 * 1024){
+        throw new Error('File size should be less than 7mb' );
+        return null;
     }
 
     // Save video metadata to the database
@@ -48,10 +59,11 @@ async function trimVideo(videoId, startTime, endTime) {
     if (!video) {
         throw new Error('Video not found');
     }
-
+    // console.log(video);
     const trimmedFilePath = path.join(uploadDir, `trimmed-${video.filename}`);
+    const oldpath = path.join(uploadDir,video.filename);
     await new Promise((resolve, reject) => {
-        ffmpeg(video.path)
+        ffmpeg(oldpath)
             .setStartTime(startTime)
             .setDuration(endTime - startTime)
             .output(trimmedFilePath)
@@ -76,17 +88,25 @@ async function mergeVideos(videoIds) {
     const mergedFilePath = path.join(uploadDir, `merged-${Date.now()}.mp4`);
     const ffmpegCommand = ffmpeg();
 
-    videos.forEach((video) => {
-        ffmpegCommand.input(video.path);
+    const inputFiles = videos.map((video) => {return path.join(uploadDir, video.filename)});
+    inputFiles.forEach((file) => {
+        ffmpegCommand.input(file);
+        console.log(file);
     });
 
-    await new Promise((resolve, reject) => {
         ffmpegCommand
-            .on('end', resolve)
-            .on('error', reject)
-            .mergeToFile(mergedFilePath);
-    });
-
+        .complexFilter(inputFiles.map((file, index) => `[${index}:v][${index}:a]`).join('') + `concat=n=${inputFiles.length}:v=1:a=1[outv][outa]`)
+        .outputOptions('-map [outv]')
+        .output(path.resolve('uploads', 'merged.mp4'))
+        .on('end', () => {
+          console.log('Merging finished');
+          res.send('Merging finished');
+        })
+        .on('error', (err) => {
+          console.error('Error merging:', err);
+          res.status(500).send('Error merging videos');
+        })
+        .run();
     return mergedFilePath;
 }
 

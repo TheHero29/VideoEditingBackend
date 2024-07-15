@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const { uploadVideo, trimVideo, mergeVideos } = require('../services/video');
 const ffmpeg = require('fluent-ffmpeg');
-
+const fs = require('fs');
 const router = express.Router();
 const upload = require('../middleware/upload');
 
@@ -22,25 +22,31 @@ const upload = require('../middleware/upload');
 // Route to handle video upload
 router.post('/upload', upload.single('video'), async (req, res) => {
     try {
-        const { size, duration } = req.body;
+        // console.log("request body:"+req.body)
+        // const { size, duration } = req.body;
         const file = req.file;
 
-        // throwing error if file size is exceeded or no file uploaded
+        // throwing error if no file uploaded
         if (!file) {
-          return res.status(400).json({ error: 'File size limit exceeded or no file uploaded' });
+          return res.status(400).json({ error: 'No file uploaded' });
         }
 
+        // if(size > 5 * 1024 * 1024){
+        //   return res.status(400).json({ error: 'File size limit exceeded' });
+        // }
         // // throwing error if video duration is more than 25 seconds orless than 5 seconds
         // const videoDuration = getVideoDuration(file.path);
         // if(videoDuration > 25 || videoDuration < 5){
         //   return res.status(400).json({ error: 'Video duration should not be more than 25 sec or less than 5 sec' });
         // }
 
-        const video = await uploadVideo(file, size, duration);
+        const video = await uploadVideo(file);
         res.status(201).json({ message: 'Video uploaded successfully', video });
     } catch (error) {
-        console.error('Error uploading video:', error);
-        res.status(500).json({ error: 'Failed to upload video' });
+        // console.error('Error uploading video:', error);
+        // res.status(500).json({ error: 'Failed to upload video' });
+        fs.unlinkSync("uploads/" + req.file.filename);
+        res.status(400).json(error.message);
     }
 });
 

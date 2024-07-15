@@ -7,7 +7,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
 
   filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const uniqueSuffix = `${Date.now()}`;
     
     const filename = `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`;
     
@@ -17,6 +17,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: maxSize},
+  // limits: { fileSize: maxSize},
  });
+
 module.exports = upload;

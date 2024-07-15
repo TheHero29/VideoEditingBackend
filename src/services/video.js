@@ -80,6 +80,7 @@ async function trimVideo(videoId, startTime, endTime) {
 
 // Function to merge multiple videos
 async function mergeVideos(videoIds) {
+  try{
     const videos = await Video.findAll({ where: { id: videoIds } });
     if (videos.length !== videoIds.length) {
         throw new Error('Not all videos found');
@@ -90,30 +91,45 @@ async function mergeVideos(videoIds) {
 
     const inputFiles = videos.map((video) => {return path.join(uploadDir, video.filename)});
     inputFiles.forEach((file) => {
-        ffmpegCommand.input(file);
-        console.log(file);
+        ffmpegCommand.addInput(file);
     });
 
-        ffmpegCommand
-        .complexFilter(inputFiles.map((file, index) => `[${index}:v][${index}:a]`).join('') + `concat=n=${inputFiles.length}:v=1:a=1[outv][outa]`)
-        .outputOptions('-map [outv]')
-        .output(path.resolve('uploads', 'merged.mp4'))
-        .on('end', () => {
-          console.log('Merging finished');
-          res.send('Merging finished');
-        })
-        .on('error', (err) => {
-          console.error('Error merging:', err);
-          res.status(500).send('Error merging videos');
-        })
-        .run();
+      ffmpegCommand
+      .complexFilter([
+        {
+          filter: 'concat',
+          options: {
+            n: inputFiles.length,
+            v: 1,
+            a: 1,
+            safe: 0 // Add this if needed for certain filesystem issues
+          },
+          inputs: inputFiles.map((file, index) => `[${index}:v][${index}:a]`).join('')
+        }
+      ])
+      .outputOptions('-map [v]')
+      .output(mergedFilePath)
+      .on('end', () => {
+        console.log('Merging finished');
+      })
+      .on('error', (err) => {
+        console.error('Error merging:', err);
+        throw new Error('Error merging videos');
+      })
+      .run();
+      // .mergeToFile(mergedFilePath, uploadDir); 
     return mergedFilePath;
+  }
+  catch(err){
+    throw new Error(err.message);
+  }
 }
 
 // Function to generate a shareable link with expiry
 function generateShareableLink(videoId, expiryTime) {
     // Implement logic to generate shareable link with expiry
     // This could involve creating a token or short-lived URL
+
 }
 
 module.exports = {

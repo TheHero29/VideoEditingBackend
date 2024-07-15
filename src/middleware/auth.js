@@ -2,18 +2,19 @@ const { error } = require("update/lib/utils");
 
 //middeware to check if the api token is valid
 const auth = async (req, res, next) => {
-  try{
+  try {
     const token = req.headers.authorization;
 
     if (!token || token !== process.env.API_TOKEN) {
-      return res.status(401).json({ message: 'Access denied. Invalid API token.' });
+      return res
+        .status(401)
+        .json({ message: "Access denied. Invalid API token." });
     }
 
     next();
+  } catch (err) {
+    return res.status(401).json({ message: "Access denied.", error: err });
   }
-  catch(err){
-    return res.status(401).json({ message: 'Access denied.', error: err });
-  }
-}
+};
 
 module.exports = auth;

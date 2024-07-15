@@ -63,8 +63,11 @@ a new video will be generated.
 ## Setup
 
 1. Clone the repository:
-   git clone https://github.com/your-repo/video-processing-api.git
-   cd video-processing-apiInstall dependencies:
-2. Install necessary dependencies: npm install
+   git clone https://github.com/TheHero29/VideoEditingBackend.git
+   cd VideoEditingBackend
+   
+2. Install necessary dependencies:
+   npm install
 
-  3.Start the server: npm start
+3. Start the server: 
+  npm start
